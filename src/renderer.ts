@@ -1,0 +1,228 @@
+import type { TimelineEvent, CastConfig, AsciicastHeader, AsciicastEvent } from "./types.js";
+
+const ESC = "\x1b";
+const CSI = `${ESC}[`;
+const RESET = `${CSI}0m`;
+const BOLD = `${CSI}1m`;
+const DIM = `${CSI}2m`;
+const GREEN = `${CSI}32m`;
+const YELLOW = `${CSI}33m`;
+const BLUE = `${CSI}34m`;
+const MAGENTA = `${CSI}35m`;
+const CYAN = `${CSI}36m`;
+const WHITE = `${CSI}37m`;
+const BG_BLUE = `${CSI}44m`;
+const BG_BLACK = `${CSI}40m`;
+
+/**
+ * Render timeline events into asciicast v2 frames.
+ */
+export function renderAsciicast(
+  events: TimelineEvent[],
+  config: CastConfig
+): { header: AsciicastHeader; events: AsciicastEvent[] } {
+  const header: AsciicastHeader = {
+    version: 2,
+    width: config.width,
+    height: config.height,
+    title: "Claude Code Session",
+    env: { TERM: "xterm-256color", SHELL: "/bin/bash" },
+  };
+
+  const frames: AsciicastEvent[] = [];
+  let currentTime = 0;
+
+  // Initial prompt
+  frames.push([0, "o", `${BOLD}${GREEN}claude ${RESET}${DIM}~ ${RESET}\r\n`]);
+
+  for (const event of events) {
+    currentTime = event.timestamp / 1000; // convert ms to seconds
+
+    switch (event.kind) {
+      case "user_message":
+        frames.push(...renderUserMessage(event, currentTime, config));
+        break;
+      case "assistant_text":
+        frames.push(...renderAssistantText(event, currentTime, config));
+        break;
+      case "tool_use":
+        frames.push(...renderToolUse(event, currentTime, config));
+        break;
+      case "tool_result":
+        frames.push(...renderToolResult(event, currentTime, config));
+        break;
+    }
+  }
+
+  // Final frame: done
+  frames.push([
+    currentTime + 1,
+    "o",
+    `\r\n${BOLD}${GREEN}claude ${RESET}${DIM}Session complete.${RESET}\r\n`,
+  ]);
+
+  return { header, events: frames };
+}
+
+function renderUserMessage(
+  event: TimelineEvent,
+  time: number,
+  config: CastConfig
+): AsciicastEvent[] {
+  const frames: AsciicastEvent[] = [];
+  const lines = wrapText(event.text, config.width - 4);
+  const header = `${BOLD}${CYAN}> User:${RESET}`;
+
+  frames.push([time, "o", `\r\n${header}\r\n`]);
+  for (let i = 0; i < Math.min(lines.length, 5); i++) {
+    frames.push([time + 0.05 * i, "o", `  ${CYAN}${lines[i]}${RESET}\r\n`]);
+  }
+  if (lines.length > 5) {
+    frames.push([time + 0.05 * 5, "o", `  ${DIM}... (${lines.length - 5} more lines)${RESET}\r\n`]);
+  }
+
+  if (config.showCaptions) {
+    frames.push([time, "o", renderStatusBar("User message", config.width)]);
+  }
+
+  return frames;
+}
+
+function renderAssistantText(
+  event: TimelineEvent,
+  time: number,
+  config: CastConfig
+): AsciicastEvent[] {
+  const frames: AsciicastEvent[] = [];
+  const lines = wrapText(event.text, config.width - 2);
+
+  frames.push([time, "o", `\r\n`]);
+
+  // Simulate typing effect — output line by line with small delays
+  const charsPerFrame = Math.max(20, config.typingSpeed / 5);
+  let charCount = 0;
+  const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
+  const totalTime = Math.min(totalChars / config.typingSpeed, event.duration / 1000);
+
+  for (let i = 0; i < Math.min(lines.length, 30); i++) {
+    const lineTime = time + (charCount / totalChars) * totalTime;
+    frames.push([lineTime, "o", `${WHITE}${lines[i]}${RESET}\r\n`]);
+    charCount += lines[i].length;
+  }
+  if (lines.length > 30) {
+    frames.push([
+      time + totalTime,
+      "o",
+      `${DIM}... (${lines.length - 30} more lines)${RESET}\r\n`,
+    ]);
+  }
+
+  return frames;
+}
+
+function renderToolUse(
+  event: TimelineEvent,
+  time: number,
+  config: CastConfig
+): AsciicastEvent[] {
+  const frames: AsciicastEvent[] = [];
+  const toolName = event.toolName || "tool";
+
+  // Tool header
+  const toolColor = getToolColor(toolName);
+  frames.push([
+    time,
+    "o",
+    `\r\n${BOLD}${toolColor}[${toolName}]${RESET} `,
+  ]);
+
+  // Tool content (command, file path, etc.)
+  const lines = event.text.split("\n");
+  for (let i = 0; i < Math.min(lines.length, 10); i++) {
+    if (i === 0) {
+      frames.push([time + 0.05, "o", `${DIM}${lines[i]}${RESET}\r\n`]);
+    } else {
+      frames.push([time + 0.05 * (i + 1), "o", `  ${DIM}${lines[i]}${RESET}\r\n`]);
+    }
+  }
+
+  // Status bar caption
+  if (config.showCaptions && event.caption) {
+    frames.push([time, "o", renderStatusBar(event.caption, config.width)]);
+  }
+
+  return frames;
+}
+
+function renderToolResult(
+  event: TimelineEvent,
+  time: number,
+  config: CastConfig
+): AsciicastEvent[] {
+  const frames: AsciicastEvent[] = [];
+
+  if (!event.text || event.text === "(result)") return frames;
+
+  const lines = event.text.split("\n");
+  const maxLines = 15;
+  const displayLines = lines.slice(0, maxLines);
+
+  frames.push([time, "o", `${DIM}`]);
+  for (let i = 0; i < displayLines.length; i++) {
+    const line = displayLines[i].slice(0, config.width - 2);
+    frames.push([time + 0.02 * i, "o", `  ${line}\r\n`]);
+  }
+  if (lines.length > maxLines) {
+    frames.push([
+      time + 0.02 * maxLines,
+      "o",
+      `  ... (${lines.length - maxLines} more lines)\r\n`,
+    ]);
+  }
+  frames.push([time + 0.02 * displayLines.length, "o", RESET]);
+
+  return frames;
+}
+
+function renderStatusBar(text: string, width: number): string {
+  // Save cursor, move to bottom, render bar, restore cursor
+  const paddedText = ` ${text} `.padEnd(width);
+  return (
+    `${CSI}s` + // save cursor
+    `${CSI}${40};1H` + // move to row 40 (bottom)
+    `${BG_BLUE}${WHITE}${BOLD}${paddedText}${RESET}` +
+    `${CSI}u` // restore cursor
+  );
+}
+
+function getToolColor(toolName: string): string {
+  switch (toolName) {
+    case "Bash":
+      return YELLOW;
+    case "Read":
+      return BLUE;
+    case "Write":
+      return GREEN;
+    case "Edit":
+      return MAGENTA;
+    case "Grep":
+    case "Glob":
+      return CYAN;
+    default:
+      return WHITE;
+  }
+}
+
+function wrapText(text: string, maxWidth: number): string[] {
+  const result: string[] = [];
+  for (const rawLine of text.split("\n")) {
+    if (rawLine.length <= maxWidth) {
+      result.push(rawLine);
+    } else {
+      for (let i = 0; i < rawLine.length; i += maxWidth) {
+        result.push(rawLine.slice(i, i + maxWidth));
+      }
+    }
+  }
+  return result;
+}
