@@ -29,11 +29,15 @@ export function parseLogContent(content: string): LogEntry[] {
 export function extractEvents(entries: LogEntry[]): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   let baseTime = 0;
+  let baseTimeSet = false;
 
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const ts = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
-    if (i === 0 && ts > 0) baseTime = ts;
+    if (!baseTimeSet && ts > 0) {
+      baseTime = ts;
+      baseTimeSet = true;
+    }
     const relativeTime = ts > 0 ? ts - baseTime : 0;
 
     const message = entry.message;
