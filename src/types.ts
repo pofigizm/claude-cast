@@ -67,6 +67,7 @@ export interface CastConfig {
   agentSpeed?: number; // chars per second for tool_use/tool_result
   responseTypingSpeed?: number; // chars per second for assistant text
   responsePause?: number; // pause after assistant response in seconds
+  preUserPause?: number; // pause before user input in seconds
   showCaptions: boolean;
   format: "cast" | "gif" | "mp4";
 }
@@ -74,9 +75,14 @@ export interface CastConfig {
 export const DEFAULT_CONFIG: CastConfig = {
   width: 120,
   height: 40,
-  speed: 1,
-  maxPause: 3,
+  speed: 2,
+  maxPause: 4,
   typingSpeed: 80,
+  userTypingSpeed: 25,
+  agentSpeed: 800,
+  responseTypingSpeed: 50,
+  responsePause: 3,
+  preUserPause: 6,
   showCaptions: true,
   format: "cast",
 };

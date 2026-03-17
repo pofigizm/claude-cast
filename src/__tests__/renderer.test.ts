@@ -97,7 +97,7 @@ describe("renderAsciicast per-phase timing", () => {
       }),
     ];
 
-    const defaultResult = renderAsciicast(events, { ...DEFAULT_CONFIG, typingSpeed: 80 });
+    const defaultResult = renderAsciicast(events, { ...DEFAULT_CONFIG, typingSpeed: 80, responseTypingSpeed: undefined });
     const overrideResult = renderAsciicast(events, { ...DEFAULT_CONFIG, typingSpeed: 80, responseTypingSpeed: 80 });
 
     // Should produce identical frame count and timing when responseTypingSpeed equals typingSpeed

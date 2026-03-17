@@ -92,15 +92,35 @@ function renderUserMessage(
 
   frames.push([time, "o", `\r\n${header}\r\n`]);
 
-  let charCount = 0;
-  const totalChars = lines.slice(0, 5).reduce((sum, l) => sum + l.length, 0);
+  const displayLines = lines.slice(0, 5);
+  const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
   const totalTime = totalChars / speed;
+  let charCount = 0;
 
-  for (let i = 0; i < Math.min(lines.length, 5); i++) {
-    const lineTime = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
-    frames.push([lineTime, "o", `  ${CYAN}${lines[i]}${RESET}\r\n`]);
-    charCount += lines[i].length;
+  // Word-by-word output for user messages
+  for (const line of displayLines) {
+    const words = line.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) {
+      const t = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
+      frames.push([t, "o", `  \r\n`]);
+      continue;
+    }
+    for (let w = 0; w < words.length; w++) {
+      const t = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
+      let out = "";
+      if (w === 0) out += `  ${CYAN}`;
+      out += words[w];
+      if (w < words.length - 1) {
+        out += " ";
+        charCount += words[w].length + 1;
+      } else {
+        out += `${RESET}\r\n`;
+        charCount += words[w].length;
+      }
+      frames.push([t, "o", out]);
+    }
   }
+
   if (lines.length > 5) {
     frames.push([time + totalTime, "o", `  ${DIM}... (${lines.length - 5} more lines)${RESET}\r\n`]);
   }
@@ -122,17 +142,36 @@ function renderAssistantText(
 
   frames.push([time, "o", `\r\n`]);
 
-  // Simulate typing effect — output line by line with small delays
+  // Word-by-word typing effect for assistant text
   const speed = getTypingSpeed("assistant_text", config);
-  let charCount = 0;
-  const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
+  const displayLines = lines.slice(0, 30);
+  const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
   const totalTime = Math.min(totalChars / speed, event.duration / 1000);
+  let charCount = 0;
 
-  for (let i = 0; i < Math.min(lines.length, 30); i++) {
-    const lineTime = time + (charCount / totalChars) * totalTime;
-    frames.push([lineTime, "o", `${WHITE}${lines[i]}${RESET}\r\n`]);
-    charCount += lines[i].length;
+  for (const line of displayLines) {
+    const words = line.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) {
+      const t = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
+      frames.push([t, "o", `\r\n`]);
+      continue;
+    }
+    for (let w = 0; w < words.length; w++) {
+      const t = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
+      let out = "";
+      if (w === 0) out += `${WHITE}`;
+      out += words[w];
+      if (w < words.length - 1) {
+        out += " ";
+        charCount += words[w].length + 1;
+      } else {
+        out += `${RESET}\r\n`;
+        charCount += words[w].length;
+      }
+      frames.push([t, "o", out]);
+    }
   }
+
   if (lines.length > 30) {
     frames.push([
       time + totalTime,

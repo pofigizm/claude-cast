@@ -27,7 +27,8 @@ function isToolChain(kind: TimelineEvent["kind"]): boolean {
 /**
  * Get the maximum pause allowed for a transition between phases.
  * Aggressively compress pauses within tool chains.
- * Add breathing pause after assistant responses before next user input.
+ * Add breathing pause after assistant responses.
+ * Add longer pause before user input so viewer can absorb previous output.
  */
 function getMaxPauseForTransition(
   currentKind: TimelineEvent["kind"],
@@ -36,15 +37,16 @@ function getMaxPauseForTransition(
 ): number {
   const maxPauseMs = config.maxPause * 1000;
   const responsePauseMs = (config.responsePause ?? config.maxPause) * 1000;
+  const preUserMs = (config.preUserPause ?? responsePauseMs / 1000 * 2) * 1000;
 
   // Within tool chains: aggressively compress pauses
   if (isToolChain(currentKind) && nextKind && isToolChain(nextKind)) {
     return Math.min(500, maxPauseMs); // max 500ms between tool calls
   }
 
-  // After assistant response before next user input: breathing pause
-  if (currentKind === "assistant_text" && nextKind === "user_message") {
-    return responsePauseMs;
+  // Before user input: longer pause so viewer can absorb previous output
+  if (nextKind === "user_message") {
+    return preUserMs;
   }
 
   return maxPauseMs;
