@@ -80,9 +80,9 @@ export const DEFAULT_CONFIG: CastConfig = {
   typingSpeed: 80,
   userTypingSpeed: 25,
   agentSpeed: 800,
-  responseTypingSpeed: 50,
+  responseTypingSpeed: 75,
   responsePause: 3,
-  preUserPause: 6,
-  showCaptions: true,
+  preUserPause: 2,
+  showCaptions: false,
   format: "cast",
 };
