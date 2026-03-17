@@ -15,6 +15,22 @@ const BG_BLUE = `${CSI}44m`;
 const BG_BLACK = `${CSI}40m`;
 
 /**
+ * Get the effective typing speed (chars/sec) for a given event kind.
+ * Per-phase speeds override the global typingSpeed fallback.
+ */
+function getTypingSpeed(kind: TimelineEvent["kind"], config: CastConfig): number {
+  switch (kind) {
+    case "user_message":
+      return config.userTypingSpeed ?? config.typingSpeed;
+    case "assistant_text":
+      return config.responseTypingSpeed ?? config.typingSpeed;
+    case "tool_use":
+    case "tool_result":
+      return config.agentSpeed ?? config.typingSpeed;
+  }
+}
+
+/**
  * Render timeline events into asciicast v2 frames.
  */
 export function renderAsciicast(
@@ -72,13 +88,21 @@ function renderUserMessage(
   const frames: AsciicastEvent[] = [];
   const lines = wrapText(event.text, config.width - 4);
   const header = `${BOLD}${CYAN}> User:${RESET}`;
+  const speed = getTypingSpeed("user_message", config);
 
   frames.push([time, "o", `\r\n${header}\r\n`]);
+
+  let charCount = 0;
+  const totalChars = lines.slice(0, 5).reduce((sum, l) => sum + l.length, 0);
+  const totalTime = totalChars / speed;
+
   for (let i = 0; i < Math.min(lines.length, 5); i++) {
-    frames.push([time + 0.05 * i, "o", `  ${CYAN}${lines[i]}${RESET}\r\n`]);
+    const lineTime = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
+    frames.push([lineTime, "o", `  ${CYAN}${lines[i]}${RESET}\r\n`]);
+    charCount += lines[i].length;
   }
   if (lines.length > 5) {
-    frames.push([time + 0.05 * 5, "o", `  ${DIM}... (${lines.length - 5} more lines)${RESET}\r\n`]);
+    frames.push([time + totalTime, "o", `  ${DIM}... (${lines.length - 5} more lines)${RESET}\r\n`]);
   }
 
   if (config.showCaptions) {
@@ -99,10 +123,10 @@ function renderAssistantText(
   frames.push([time, "o", `\r\n`]);
 
   // Simulate typing effect — output line by line with small delays
-  const charsPerFrame = Math.max(20, config.typingSpeed / 5);
+  const speed = getTypingSpeed("assistant_text", config);
   let charCount = 0;
   const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
-  const totalTime = Math.min(totalChars / config.typingSpeed, event.duration / 1000);
+  const totalTime = Math.min(totalChars / speed, event.duration / 1000);
 
   for (let i = 0; i < Math.min(lines.length, 30); i++) {
     const lineTime = time + (charCount / totalChars) * totalTime;
@@ -127,6 +151,8 @@ function renderToolUse(
 ): AsciicastEvent[] {
   const frames: AsciicastEvent[] = [];
   const toolName = event.toolName || "tool";
+  const speed = getTypingSpeed("tool_use", config);
+  const lineDelay = Math.min(0.05, 10 / speed); // faster agent speed = smaller delay
 
   // Tool header
   const toolColor = getToolColor(toolName);
@@ -140,9 +166,9 @@ function renderToolUse(
   const lines = event.text.split("\n");
   for (let i = 0; i < Math.min(lines.length, 10); i++) {
     if (i === 0) {
-      frames.push([time + 0.05, "o", `${DIM}${lines[i]}${RESET}\r\n`]);
+      frames.push([time + lineDelay, "o", `${DIM}${lines[i]}${RESET}\r\n`]);
     } else {
-      frames.push([time + 0.05 * (i + 1), "o", `  ${DIM}${lines[i]}${RESET}\r\n`]);
+      frames.push([time + lineDelay * (i + 1), "o", `  ${DIM}${lines[i]}${RESET}\r\n`]);
     }
   }
 
@@ -163,6 +189,9 @@ function renderToolResult(
 
   if (!event.text || event.text === "(result)") return frames;
 
+  const speed = getTypingSpeed("tool_result", config);
+  const lineDelay = Math.min(0.02, 10 / speed);
+
   const lines = event.text.split("\n");
   const maxLines = 15;
   const displayLines = lines.slice(0, maxLines);
@@ -170,16 +199,16 @@ function renderToolResult(
   frames.push([time, "o", `${DIM}`]);
   for (let i = 0; i < displayLines.length; i++) {
     const line = displayLines[i].slice(0, config.width - 2);
-    frames.push([time + 0.02 * i, "o", `  ${line}\r\n`]);
+    frames.push([time + lineDelay * i, "o", `  ${line}\r\n`]);
   }
   if (lines.length > maxLines) {
     frames.push([
-      time + 0.02 * maxLines,
+      time + lineDelay * maxLines,
       "o",
       `  ... (${lines.length - maxLines} more lines)\r\n`,
     ]);
   }
-  frames.push([time + 0.02 * displayLines.length, "o", RESET]);
+  frames.push([time + lineDelay * displayLines.length, "o", RESET]);
 
   return frames;
 }

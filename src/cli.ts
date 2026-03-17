@@ -16,7 +16,11 @@ program
   .option("--max-pause <seconds>", "Maximum pause duration in seconds", parseFloat, 3)
   .option("--width <cols>", "Terminal width", parseInt, 120)
   .option("--height <rows>", "Terminal height", parseInt, 40)
-  .option("--typing-speed <cps>", "Typing speed (chars/sec)", parseInt, 80)
+  .option("--typing-speed <cps>", "Typing speed (chars/sec, fallback)", parseInt, 80)
+  .option("--user-typing-speed <cps>", "User message typing speed (chars/sec)", parseInt)
+  .option("--agent-speed <cps>", "Agent tool_use/tool_result speed (chars/sec)", parseInt)
+  .option("--response-typing-speed <cps>", "Assistant response typing speed (chars/sec)", parseInt)
+  .option("--response-pause <seconds>", "Pause after assistant response (seconds)", parseFloat)
   .option("--no-captions", "Disable action captions")
   .action((input: string, opts: Record<string, unknown>) => {
     const format = opts.format as CastConfig["format"];
@@ -38,6 +42,11 @@ program
       showCaptions: opts.captions !== false,
       format: detectedFormat,
     };
+
+    if (opts.userTypingSpeed != null) config.userTypingSpeed = opts.userTypingSpeed as number;
+    if (opts.agentSpeed != null) config.agentSpeed = opts.agentSpeed as number;
+    if (opts.responseTypingSpeed != null) config.responseTypingSpeed = opts.responseTypingSpeed as number;
+    if (opts.responsePause != null) config.responsePause = opts.responsePause as number;
 
     console.log(`claude-cast: converting ${input} → ${outputPath}`);
     console.log(`  format: ${detectedFormat}, speed: ${config.speed}x, max-pause: ${config.maxPause}s`);
