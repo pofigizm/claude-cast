@@ -37,8 +37,34 @@ npx claude-cast input.jsonl -o output.mp4
 | `--max-pause <sec>` | `3` | Maximum pause duration (seconds) |
 | `--width <cols>` | `120` | Terminal width |
 | `--height <rows>` | `40` | Terminal height |
-| `--typing-speed <cps>` | `80` | Simulated typing speed (chars/sec) |
+| `--typing-speed <cps>` | `80` | Simulated typing speed — fallback (chars/sec) |
+| `--user-typing-speed <cps>` | | User message typing speed (chars/sec) |
+| `--agent-speed <cps>` | | Agent tool_use/tool_result speed (chars/sec) |
+| `--response-typing-speed <cps>` | | Assistant response typing speed (chars/sec) |
+| `--response-pause <sec>` | | Pause after assistant response (seconds) |
 | `--no-captions` | | Disable action captions |
+
+### Per-phase timing
+
+Different phases of a Claude session play at different speeds for a more natural viewing experience:
+
+| Phase | Description | Suggested speed |
+|-------|-------------|-----------------|
+| User typing | Slow — viewer reads the prompt | ~30 cps |
+| Agent working | Fast scroll through tool chains | ~500 cps |
+| Assistant text | Readable response output | ~60 cps |
+| Response pause | Breathing room before next turn | ~2s |
+
+Example:
+```bash
+npx claude-cast input.jsonl -o output.cast \
+  --user-typing-speed 30 \
+  --agent-speed 500 \
+  --response-typing-speed 60 \
+  --response-pause 2
+```
+
+When per-phase options are not specified, `--typing-speed` is used as the fallback for all phases.
 
 ## Playing the output
 

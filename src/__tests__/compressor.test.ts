@@ -70,4 +70,48 @@ describe("compressTimeline", () => {
     const result = compressTimeline([], DEFAULT_CONFIG);
     expect(result).toHaveLength(0);
   });
+
+  it("should aggressively compress pauses within tool chains", () => {
+    const events: TimelineEvent[] = [
+      makeEvent({ kind: "tool_use", timestamp: 0, duration: 5000, toolName: "Bash" }),
+      makeEvent({ kind: "tool_result", timestamp: 5000, duration: 5000 }),
+      makeEvent({ kind: "tool_use", timestamp: 10000, duration: 5000, toolName: "Read" }),
+      makeEvent({ kind: "tool_result", timestamp: 15000, duration: 1000 }),
+    ];
+
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3 };
+    const result = compressTimeline(events, config);
+
+    // Pauses between tool_use -> tool_result and tool_result -> tool_use
+    // should be capped to 500ms (not the full maxPause of 3s)
+    expect(result[0].duration).toBeLessThanOrEqual(500);
+    expect(result[1].duration).toBeLessThanOrEqual(500);
+    expect(result[2].duration).toBeLessThanOrEqual(500);
+  });
+
+  it("should apply responsePause after assistant text before user message", () => {
+    const events: TimelineEvent[] = [
+      makeEvent({ kind: "assistant_text", timestamp: 0, duration: 10000 }),
+      makeEvent({ kind: "user_message", timestamp: 10000, duration: 1000 }),
+    ];
+
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3, responsePause: 2 };
+    const result = compressTimeline(events, config);
+
+    // Duration should be capped to responsePause (2s = 2000ms)
+    expect(result[0].duration).toBe(2000);
+  });
+
+  it("should use maxPause as responsePause fallback", () => {
+    const events: TimelineEvent[] = [
+      makeEvent({ kind: "assistant_text", timestamp: 0, duration: 10000 }),
+      makeEvent({ kind: "user_message", timestamp: 10000, duration: 1000 }),
+    ];
+
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3 };
+    const result = compressTimeline(events, config);
+
+    // Without explicit responsePause, should fall back to maxPause (3s = 3000ms)
+    expect(result[0].duration).toBe(3000);
+  });
 });

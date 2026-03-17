@@ -62,7 +62,11 @@ export interface CastConfig {
   height: number;
   speed: number;
   maxPause: number; // max pause duration in seconds
-  typingSpeed: number; // chars per second for simulated typing
+  typingSpeed: number; // chars per second for simulated typing (fallback)
+  userTypingSpeed?: number; // chars per second for user messages
+  agentSpeed?: number; // chars per second for tool_use/tool_result
+  responseTypingSpeed?: number; // chars per second for assistant text
+  responsePause?: number; // pause after assistant response in seconds
   showCaptions: boolean;
   format: "cast" | "gif" | "mp4";
 }
