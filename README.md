@@ -1,5 +1,7 @@
 # claude-cast
 
+🇷🇺 [Читать на русском](README.ru.md)
+
 Convert Claude Code JSONL logs into terminal screencasts.
 
 Takes a raw Claude Code session log and produces a realistic terminal screencast showing how Claude worked — with tool calls, file edits, bash commands, and action captions.
@@ -38,11 +40,11 @@ npx claude-cast input.jsonl -o output.mp4
 | `--width <cols>` | `120` | Terminal width |
 | `--height <rows>` | `40` | Terminal height |
 | `--typing-speed <cps>` | `80` | Simulated typing speed — fallback (chars/sec) |
-| `--user-typing-speed <cps>` | | User message typing speed (chars/sec) |
-| `--agent-speed <cps>` | | Agent tool_use/tool_result speed (chars/sec) |
-| `--response-typing-speed <cps>` | | Assistant response typing speed (chars/sec) |
-| `--response-pause <sec>` | | Pause after assistant response (seconds) |
-| `--no-captions` | | Disable action captions |
+| `--user-typing-speed <cps>` | `80` | User message typing speed (chars/sec) |
+| `--agent-speed <cps>` | `80` | Agent tool_use/tool_result speed (chars/sec) |
+| `--response-typing-speed <cps>` | `80` | Assistant response typing speed (chars/sec) |
+| `--response-pause <sec>` | `0` | Pause after assistant response (seconds) |
+| `--no-captions` | `false` | Disable action captions |
 
 ### Per-phase timing
 
@@ -65,6 +67,29 @@ npx claude-cast input.jsonl -o output.cast \
 ```
 
 When per-phase options are not specified, `--typing-speed` is used as the fallback for all phases.
+
+### Recommended settings
+
+These tuned values produce a well-paced, watchable screencast:
+
+```bash
+npx claude-cast input.jsonl -o output.cast \
+  --user-typing-speed 25 \
+  --agent-speed 800 \
+  --response-typing-speed 50 \
+  --response-pause 3 \
+  --max-pause 4 \
+  --speed 1.5
+```
+
+Why these values work well:
+
+- **`--user-typing-speed 25`** — slow enough for the viewer to read the full prompt as it appears
+- **`--agent-speed 800`** — tool calls and results scroll by fast; the viewer doesn't need to read every line, just see activity
+- **`--response-typing-speed 50`** — Claude's replies appear at a comfortable reading pace
+- **`--response-pause 3`** — gives a 3-second breather between turns so the viewer can absorb the response
+- **`--max-pause 4`** — caps dead time so the recording never stalls
+- **`--speed 1.5`** — slight global speedup that tightens the overall pacing without feeling rushed
 
 ## Playing the output
 
