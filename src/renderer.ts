@@ -88,17 +88,19 @@ function renderUserMessage(
   const frames: AsciicastEvent[] = [];
   const lines = wrapText(event.text, config.width - 4);
   const header = `${BOLD}${CYAN}> User:${RESET}`;
-  const speed = getTypingSpeed("user_message", config);
-
   frames.push([time, "o", `\r\n${header}\r\n`]);
 
-  const displayLines = lines.slice(0, 5);
-  const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
+  const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
+  // Long user messages (pastes, machine-generated) get agent speed
+  const isLongInput = totalChars > 200 || lines.length > 5;
+  const speed = isLongInput
+    ? (config.agentSpeed ?? config.typingSpeed)
+    : getTypingSpeed("user_message", config);
   const totalTime = totalChars / speed;
   let charCount = 0;
 
   // Word-by-word output for user messages
-  for (const line of displayLines) {
+  for (const line of lines) {
     const words = line.split(/\s+/).filter((w) => w.length > 0);
     if (words.length === 0) {
       const t = time + (totalChars > 0 ? (charCount / totalChars) * totalTime : 0);
@@ -119,10 +121,6 @@ function renderUserMessage(
       }
       frames.push([t, "o", out]);
     }
-  }
-
-  if (lines.length > 5) {
-    frames.push([time + totalTime, "o", `  ${DIM}... (${lines.length - 5} more lines)${RESET}\r\n`]);
   }
 
   if (config.showCaptions) {
@@ -146,7 +144,7 @@ function renderAssistantText(
   const speed = getTypingSpeed("assistant_text", config);
   const displayLines = lines.slice(0, 30);
   const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
-  const totalTime = Math.min(totalChars / speed, event.duration / 1000);
+  const totalTime = totalChars / speed;
   let charCount = 0;
 
   for (const line of displayLines) {

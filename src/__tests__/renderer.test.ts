@@ -103,4 +103,117 @@ describe("renderAsciicast per-phase timing", () => {
     // Should produce identical frame count and timing when responseTypingSpeed equals typingSpeed
     expect(defaultResult.events.length).toBe(overrideResult.events.length);
   });
+
+  it("should use agentSpeed for long user messages (>200 chars)", () => {
+    // A long user message should use agentSpeed, producing tighter timing than userTypingSpeed
+    const longText = "word ".repeat(60); // 300 chars, well over 200
+
+    const events: TimelineEvent[] = [
+      makeEvent({
+        kind: "user_message",
+        timestamp: 1000,
+        duration: 5000,
+        text: longText,
+      }),
+    ];
+
+    const config: CastConfig = {
+      ...DEFAULT_CONFIG,
+      userTypingSpeed: 25,
+      agentSpeed: 800,
+    };
+
+    const result = renderAsciicast(events, config);
+
+    // Extract word-level frames (those that contain actual user text, not headers)
+    const wordFrames = result.events.filter(
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+    );
+
+    // With agentSpeed=800, totalTime = 300/800 = 0.375s
+    // With userTypingSpeed=25, totalTime = 300/25 = 12s
+    // The last word frame should be within a few seconds of the start, not 12+ seconds
+    if (wordFrames.length > 1) {
+      const firstWordTime = wordFrames[0][0];
+      const lastWordTime = wordFrames[wordFrames.length - 1][0];
+      const renderSpan = lastWordTime - firstWordTime;
+
+      // Should be close to 300/800 = 0.375s, definitely under 2s
+      // If userTypingSpeed were used, it would be 12s
+      expect(renderSpan).toBeLessThan(2);
+    }
+  });
+
+  it("should use userTypingSpeed for short user messages (<=200 chars)", () => {
+    const shortText = "Hello, how are you today?"; // well under 200 chars
+
+    const events: TimelineEvent[] = [
+      makeEvent({
+        kind: "user_message",
+        timestamp: 1000,
+        duration: 5000,
+        text: shortText,
+      }),
+    ];
+
+    const config: CastConfig = {
+      ...DEFAULT_CONFIG,
+      userTypingSpeed: 25,
+      agentSpeed: 800,
+    };
+
+    const result = renderAsciicast(events, config);
+
+    const wordFrames = result.events.filter(
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+    );
+
+    if (wordFrames.length > 1) {
+      const firstWordTime = wordFrames[0][0];
+      const lastWordTime = wordFrames[wordFrames.length - 1][0];
+      const renderSpan = lastWordTime - firstWordTime;
+
+      // With userTypingSpeed=25, totalTime = 25/25 = 1s
+      // With agentSpeed=800, it would be 25/800 = 0.03s
+      // Should be closer to 1s than 0.03s
+      expect(renderSpan).toBeGreaterThan(0.1);
+    }
+  });
+
+  it("should use agentSpeed for user messages with >5 lines", () => {
+    // Even if under 200 chars total, >5 lines triggers agentSpeed
+    const multilineText = "hi\nhi\nhi\nhi\nhi\nhi"; // 6 lines, ~18 chars
+
+    const events: TimelineEvent[] = [
+      makeEvent({
+        kind: "user_message",
+        timestamp: 1000,
+        duration: 5000,
+        text: multilineText,
+      }),
+    ];
+
+    const config: CastConfig = {
+      ...DEFAULT_CONFIG,
+      userTypingSpeed: 10,  // very slow
+      agentSpeed: 5000,     // very fast
+    };
+
+    const result = renderAsciicast(events, config);
+
+    const wordFrames = result.events.filter(
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+    );
+
+    if (wordFrames.length > 1) {
+      const firstWordTime = wordFrames[0][0];
+      const lastWordTime = wordFrames[wordFrames.length - 1][0];
+      const renderSpan = lastWordTime - firstWordTime;
+
+      // With agentSpeed=5000: totalTime = 18/5000 = 0.0036s
+      // With userTypingSpeed=10: totalTime = 18/10 = 1.8s
+      // Should be very fast (agentSpeed), well under 0.5s
+      expect(renderSpan).toBeLessThan(0.5);
+    }
+  });
 });

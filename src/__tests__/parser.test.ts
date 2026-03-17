@@ -71,4 +71,43 @@ describe("extractEvents", () => {
     expect(events[0].kind).toBe("user_message");
     expect(events[0].text).toBe("simple string message");
   });
+
+  it("should set baseTime from the first entry that has a timestamp", () => {
+    // First entry has no timestamp (e.g. file-history-snapshot), second does
+    const log = [
+      `{"type":"file-history-snapshot","data":{}}`,
+      `{"type":"message","timestamp":"2025-01-15T10:00:05.000Z","message":{"role":"user","content":"Hello"}}`,
+      `{"type":"message","timestamp":"2025-01-15T10:00:08.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Hi"}]}}`,
+    ].join("\n");
+
+    const entries = parseLogContent(log);
+    const events = extractEvents(entries);
+
+    // The user_message should have timestamp 0 (it is the first entry with a timestamp)
+    const userEvent = events.find((e) => e.kind === "user_message");
+    expect(userEvent).toBeDefined();
+    expect(userEvent!.timestamp).toBe(0);
+
+    // The assistant_text should have timestamp = 3000ms (8s - 5s)
+    const assistantEvent = events.find((e) => e.kind === "assistant_text");
+    expect(assistantEvent).toBeDefined();
+    expect(assistantEvent!.timestamp).toBe(3000);
+  });
+
+  it("should not leave baseTime at 0 when first entries lack timestamps", () => {
+    // If baseTime stayed 0, the first real timestamp (10:00:05) would produce
+    // a huge relative time instead of 0
+    const log = [
+      `{"type":"system","data":{}}`,
+      `{"type":"system","data":{}}`,
+      `{"type":"message","timestamp":"2025-01-15T10:00:05.000Z","message":{"role":"user","content":"Test"}}`,
+    ].join("\n");
+
+    const entries = parseLogContent(log);
+    const events = extractEvents(entries);
+
+    expect(events).toHaveLength(1);
+    // First event with a timestamp should be at relative time 0, not a huge number
+    expect(events[0].timestamp).toBe(0);
+  });
 });

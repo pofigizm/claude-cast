@@ -22,7 +22,7 @@ program
   .option("--response-typing-speed <cps>", "Assistant response typing speed (chars/sec)", parseInt)
   .option("--response-pause <seconds>", "Pause after assistant response (seconds)", parseFloat)
   .option("--pre-user-pause <seconds>", "Pause before user input (seconds)", parseFloat)
-  .option("--no-captions", "Disable action captions")
+  .option("--captions", "Enable action captions (disabled by default)")
   .action((input: string, opts: Record<string, unknown>) => {
     const format = opts.format as CastConfig["format"];
     if (!["cast", "gif", "mp4"].includes(format)) {
@@ -40,7 +40,7 @@ program
       width: opts.width as number,
       height: opts.height as number,
       typingSpeed: opts.typingSpeed as number,
-      showCaptions: opts.captions !== false,
+      showCaptions: opts.captions === true,
       format: detectedFormat,
     };
 

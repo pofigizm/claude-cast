@@ -42,10 +42,10 @@ npx claude-cast input.jsonl -o output.mp4
 | `--typing-speed <cps>` | `80` | Simulated typing speed — fallback (chars/sec) |
 | `--user-typing-speed <cps>` | `25` | User message typing speed (chars/sec) |
 | `--agent-speed <cps>` | `800` | Agent tool_use/tool_result speed (chars/sec) |
-| `--response-typing-speed <cps>` | `50` | Assistant response typing speed (chars/sec) |
+| `--response-typing-speed <cps>` | `75` | Assistant response typing speed (chars/sec) |
 | `--response-pause <sec>` | `3` | Pause after assistant response (seconds) |
-| `--pre-user-pause <sec>` | `6` | Pause before user input (seconds) |
-| `--no-captions` | `false` | Disable action captions |
+| `--pre-user-pause <sec>` | `2` | Pause before user input (seconds) |
+| `--captions` | `false` | Enable action captions (disabled by default) |
 
 ### Per-phase timing
 
@@ -55,9 +55,9 @@ Different phases of a Claude session play at different speeds for a more natural
 |-------|-------------|---------|
 | User typing | Word-by-word — viewer reads the prompt | 25 cps |
 | Agent working | Fast line-by-line scroll through tool chains | 800 cps |
-| Assistant text | Word-by-word readable response stream | 50 cps |
+| Assistant text | Word-by-word readable response stream | 75 cps |
 | Response pause | Breathing room after assistant response | 3s |
-| Pre-user pause | Longer pause before next user input | 6s |
+| Pre-user pause | Brief pause before next user input | 2s |
 
 User messages and assistant responses render **word-by-word** for a natural typing feel. Tool output (bash results, file contents) stays **line-by-line** since it's machine output.
 
@@ -70,9 +70,9 @@ The defaults are tuned to produce a tight, watchable screencast out of the box:
 - **`--speed 2`** — 2x global speedup compresses overall tempo so bash/tool output flies by, while user input and assistant responses get breathing room from per-phase speeds
 - **`--user-typing-speed 25`** — user prompts appear word-by-word at a slow pace so the viewer can read them
 - **`--agent-speed 800`** — tool calls and results scroll by fast; the viewer doesn't need to read every line, just see activity
-- **`--response-typing-speed 50`** — Claude's replies stream word-by-word at a comfortable reading pace
+- **`--response-typing-speed 75`** — Claude's replies stream word-by-word at a comfortable reading pace
 - **`--response-pause 3`** — gives a 3-second breather between turns so the viewer can absorb the response
-- **`--pre-user-pause 6`** — longer pause before the next user input, giving the viewer time to absorb the previous output
+- **`--pre-user-pause 2`** — short pause before the next user input, keeping the flow tight (the response pause already gives reading time)
 - **`--max-pause 4`** — caps dead time so the recording never stalls
 
 To override, pass any option on the command line:
