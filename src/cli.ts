@@ -12,8 +12,8 @@ program
   .argument("<input>", "Path to Claude Code JSONL log file")
   .option("-o, --output <path>", "Output file path", "output.cast")
   .option("-f, --format <format>", "Output format: cast, gif, mp4", "cast")
-  .option("-s, --speed <number>", "Playback speed multiplier", parseFloat, 1)
-  .option("--max-pause <seconds>", "Maximum pause duration in seconds", parseFloat, 3)
+  .option("-s, --speed <number>", "Playback speed multiplier", parseFloat, 2)
+  .option("--max-pause <seconds>", "Maximum pause duration in seconds", parseFloat, 4)
   .option("--width <cols>", "Terminal width", parseInt, 120)
   .option("--height <rows>", "Terminal height", parseInt, 40)
   .option("--typing-speed <cps>", "Typing speed (chars/sec, fallback)", parseInt, 80)
@@ -21,6 +21,7 @@ program
   .option("--agent-speed <cps>", "Agent tool_use/tool_result speed (chars/sec)", parseInt)
   .option("--response-typing-speed <cps>", "Assistant response typing speed (chars/sec)", parseInt)
   .option("--response-pause <seconds>", "Pause after assistant response (seconds)", parseFloat)
+  .option("--pre-user-pause <seconds>", "Pause before user input (seconds)", parseFloat)
   .option("--no-captions", "Disable action captions")
   .action((input: string, opts: Record<string, unknown>) => {
     const format = opts.format as CastConfig["format"];
@@ -47,6 +48,7 @@ program
     if (opts.agentSpeed != null) config.agentSpeed = opts.agentSpeed as number;
     if (opts.responseTypingSpeed != null) config.responseTypingSpeed = opts.responseTypingSpeed as number;
     if (opts.responsePause != null) config.responsePause = opts.responsePause as number;
+    if (opts.preUserPause != null) config.preUserPause = opts.preUserPause as number;
 
     console.log(`claude-cast: converting ${input} → ${outputPath}`);
     console.log(`  format: ${detectedFormat}, speed: ${config.speed}x, max-pause: ${config.maxPause}s`);

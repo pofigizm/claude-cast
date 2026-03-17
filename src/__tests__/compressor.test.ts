@@ -89,29 +89,42 @@ describe("compressTimeline", () => {
     expect(result[2].duration).toBeLessThanOrEqual(500);
   });
 
-  it("should apply responsePause after assistant text before user message", () => {
+  it("should apply preUserPause before user message", () => {
     const events: TimelineEvent[] = [
       makeEvent({ kind: "assistant_text", timestamp: 0, duration: 10000 }),
       makeEvent({ kind: "user_message", timestamp: 10000, duration: 1000 }),
     ];
 
-    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3, responsePause: 2 };
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3, preUserPause: 5 };
     const result = compressTimeline(events, config);
 
-    // Duration should be capped to responsePause (2s = 2000ms)
-    expect(result[0].duration).toBe(2000);
+    // Duration should be capped to preUserPause (5s = 5000ms / speed)
+    expect(result[0].duration).toBe(5000 / config.speed);
   });
 
-  it("should use maxPause as responsePause fallback", () => {
+  it("should apply preUserPause from any event before user message", () => {
+    const events: TimelineEvent[] = [
+      makeEvent({ kind: "tool_result", timestamp: 0, duration: 10000 }),
+      makeEvent({ kind: "user_message", timestamp: 10000, duration: 1000 }),
+    ];
+
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3, preUserPause: 4 };
+    const result = compressTimeline(events, config);
+
+    // Duration should be capped to preUserPause (4s = 4000ms / speed)
+    expect(result[0].duration).toBe(4000 / config.speed);
+  });
+
+  it("should fall back to 2x responsePause for preUserPause", () => {
     const events: TimelineEvent[] = [
       makeEvent({ kind: "assistant_text", timestamp: 0, duration: 10000 }),
       makeEvent({ kind: "user_message", timestamp: 10000, duration: 1000 }),
     ];
 
-    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3 };
+    const config: CastConfig = { ...DEFAULT_CONFIG, maxPause: 3, responsePause: 2, preUserPause: undefined };
     const result = compressTimeline(events, config);
 
-    // Without explicit responsePause, should fall back to maxPause (3s = 3000ms)
-    expect(result[0].duration).toBe(3000);
+    // Without explicit preUserPause, should fall back to 2x responsePause (4s = 4000ms / speed)
+    expect(result[0].duration).toBe(4000 / config.speed);
   });
 });
