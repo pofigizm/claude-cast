@@ -6,6 +6,26 @@ Convert Claude Code JSONL logs into terminal screencasts.
 
 Takes a raw Claude Code session log and produces a realistic terminal screencast showing how Claude worked — with tool calls, file edits, bash commands, and action captions.
 
+## Demo
+
+The demo screencast is itself a recording of Claude building claude-cast — a self-referential session where the tool creates itself:
+
+```bash
+# Play the demo
+asciinema play examples/demo.cast
+
+# Or regenerate it
+npm run demo
+```
+
+To convert the demo to GIF (requires [agg](https://github.com/asciinema/agg)):
+
+```bash
+agg examples/demo.cast examples/demo.gif
+```
+
+> **Meta note:** The demo session shows Claude being asked to build a JSONL-to-screencast converter. The screencast you're watching *is* that converter's output. Turtles all the way down.
+
 ## Installation
 
 ```bash
