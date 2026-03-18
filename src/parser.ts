@@ -70,13 +70,33 @@ function normalizeContent(content: string | ContentBlock[] | undefined): Content
   return content;
 }
 
+const SYSTEM_USER_PREFIXES = [
+  "<task-notification>",
+  "<local-command-caveat>",
+  "<local-command-stdout>",
+  "<command-name>",
+  "<command-message>",
+  "<command-args>",
+];
+
+/**
+ * Detect user messages that are actually system/machine-generated
+ * (task notifications, command output, interrupts, etc.)
+ */
+function isSystemUserMessage(text: string): boolean {
+  const trimmed = text.trimStart();
+  return SYSTEM_USER_PREFIXES.some((prefix) => trimmed.startsWith(prefix));
+}
+
 function blockToEvent(
   block: ContentBlock,
   role: string,
   timestamp: number
 ): TimelineEvent | null {
   if (block.type === "text" && block.text) {
-    const kind: EventKind = role === "user" ? "user_message" : "assistant_text";
+    const kind: EventKind = role === "user"
+      ? (isSystemUserMessage(block.text) ? "tool_result" : "user_message")
+      : "assistant_text";
     return {
       kind,
       timestamp,
