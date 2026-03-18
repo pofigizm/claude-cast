@@ -4,7 +4,7 @@
 
 Convert Claude Code JSONL logs into terminal screencasts.
 
-Takes a raw Claude Code session log and produces a realistic terminal screencast showing how Claude worked — with tool calls, file edits, bash commands, and action captions.
+Takes a raw Claude Code session log and produces a realistic terminal screencast showing how Claude worked — with tool calls, file edits, bash commands, and action captions. All logs undergo basic sanitization to detect sensitive data (API keys, tokens, passwords) before rendering.
 
 ## Installation
 

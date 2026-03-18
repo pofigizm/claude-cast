@@ -77,8 +77,6 @@ const SYSTEM_USER_PREFIXES = [
   "<command-name>",
   "<command-message>",
   "<command-args>",
-  "[Request interrupted by user",
-  "[Image: source:",
 ];
 
 /**
