@@ -10,19 +10,7 @@ Takes a raw Claude Code session log and produces a realistic terminal screencast
 
 The demo screencast is itself a recording of Claude building claude-cast — a self-referential session where the tool creates itself:
 
-```bash
-# Play the demo
-asciinema play examples/demo.cast
-
-# Or regenerate it
-npm run demo
-```
-
-To convert the demo to GIF (requires [agg](https://github.com/asciinema/agg)):
-
-```bash
-agg examples/demo.cast examples/demo.gif
-```
+![demo](examples/demo.svg)
 
 > **Meta note:** The demo session shows Claude being asked to build a JSONL-to-screencast converter. The screencast you're watching *is* that converter's output. Turtles all the way down.
 
