@@ -34,7 +34,7 @@ export function extractEvents(entries: LogEntry[]): TimelineEvent[] {
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const ts = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
-    if (!baseTimeSet && ts > 0) {
+    if (!baseTimeSet && ts > 0 && entry.message) {
       baseTime = ts;
       baseTimeSet = true;
     }
@@ -77,6 +77,9 @@ const SYSTEM_USER_PREFIXES = [
   "<command-name>",
   "<command-message>",
   "<command-args>",
+  "<system-reminder>",
+  "<available-deferred-tools>",
+  "Base directory for this skill:",
 ];
 
 /**

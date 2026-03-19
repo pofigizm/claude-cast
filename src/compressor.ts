@@ -80,15 +80,18 @@ function estimateRenderTime(event: TimelineEvent, config: CastConfig): number {
 
   switch (event.kind) {
     case "user_message": {
-      const isLong = event.text.length > 200;
-      const speed = isLong
-        ? (config.agentSpeed ?? config.typingSpeed)
-        : (config.userTypingSpeed ?? config.typingSpeed);
+      const speed = config.userTypingSpeed ?? config.typingSpeed;
       return (event.text.length / speed) * 1000;
     }
     case "assistant_text": {
       const speed = config.responseTypingSpeed ?? config.typingSpeed;
-      return (event.text.length / speed) * 1000;
+      // Renderer only displays first 30 lines and caps render time to maxPause*2
+      const lines = event.text.split("\n");
+      const displayText = lines.length > 30
+        ? lines.slice(0, 30).join("\n")
+        : event.text;
+      const rawTime = (displayText.length / speed) * 1000;
+      return Math.min(rawTime, config.maxPause * 2 * 1000);
     }
     case "tool_use":
     case "tool_result":
@@ -138,12 +141,15 @@ export function compressTimeline(
       timeOffset += extra;
     }
 
-    // Ensure duration covers render time + extra pause
+    // Ensure duration covers render time + visible pause
     // renderTime is in "real" ms, but duration will be divided by speed later,
     // while renderer uses totalChars/speed directly (not affected by speed multiplier).
     // So we need renderTime * speed to match the pre-division duration space.
     const renderTime = estimateRenderTime(event, config) * config.speed;
-    const minDuration = renderTime + extra;
+    // minDuration = full render time (so text finishes before next event)
+    // + extra pause capped to maxPause (so the pause after is reasonable)
+    const cappedExtra = Math.min(extra, effectiveMaxPause);
+    const minDuration = renderTime + cappedExtra;
     if (event.duration < minDuration) {
       const diff = minDuration - event.duration;
       event.duration = minDuration;

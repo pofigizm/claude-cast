@@ -138,9 +138,9 @@ describe("renderAsciicast per-phase timing", () => {
       const lastWordTime = wordFrames[wordFrames.length - 1][0];
       const renderSpan = lastWordTime - firstWordTime;
 
-      // Should be close to 300/800 = 0.375s, definitely under 2s
-      // If userTypingSpeed were used, it would be 12s
-      expect(renderSpan).toBeLessThan(2);
+      // User messages always use userTypingSpeed regardless of length
+      // 300 chars at 25 cps = 12s
+      expect(renderSpan).toBeGreaterThan(5);
     }
   });
 
@@ -180,8 +180,8 @@ describe("renderAsciicast per-phase timing", () => {
     }
   });
 
-  it("should use agentSpeed for user messages with >5 lines", () => {
-    // Even if under 200 chars total, >5 lines triggers agentSpeed
+  it("should use userTypingSpeed for all user messages regardless of length", () => {
+    // Even long user messages use userTypingSpeed — they are real user input
     const multilineText = "hi\nhi\nhi\nhi\nhi\nhi"; // 6 lines, ~18 chars
 
     const events: TimelineEvent[] = [
@@ -195,8 +195,8 @@ describe("renderAsciicast per-phase timing", () => {
 
     const config: CastConfig = {
       ...DEFAULT_CONFIG,
-      userTypingSpeed: 10,  // very slow
-      agentSpeed: 5000,     // very fast
+      userTypingSpeed: 10,
+      agentSpeed: 5000,
     };
 
     const result = renderAsciicast(events, config);
@@ -210,10 +210,9 @@ describe("renderAsciicast per-phase timing", () => {
       const lastWordTime = wordFrames[wordFrames.length - 1][0];
       const renderSpan = lastWordTime - firstWordTime;
 
-      // With agentSpeed=5000: totalTime = 18/5000 = 0.0036s
       // With userTypingSpeed=10: totalTime = 18/10 = 1.8s
-      // Should be very fast (agentSpeed), well under 0.5s
-      expect(renderSpan).toBeLessThan(0.5);
+      // Should use slow userTypingSpeed, not fast agentSpeed
+      expect(renderSpan).toBeGreaterThan(0.5);
     }
   });
 });
