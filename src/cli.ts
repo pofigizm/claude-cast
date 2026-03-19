@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { convertLog } from "./index.js";
+import { checkSecretsFile, formatFindings } from "./secrets.js";
 import type { CastConfig } from "./types.js";
 import { DEFAULT_CONFIG } from "./types.js";
 
@@ -22,7 +23,10 @@ program
   .option("--response-typing-speed <cps>", "Assistant response typing speed (chars/sec)", parseInt)
   .option("--response-pause <seconds>", "Pause after assistant response (seconds)", parseFloat)
   .option("--pre-user-pause <seconds>", "Pause before user input (seconds)", parseFloat)
-  .option("--captions", "Enable action captions (disabled by default)")
+  .option("--no-captions", "Disable action captions (enabled by default)")
+  .option("--title <text>", "Custom title for the asciicast header")
+  .option("--secrets-check <mode>", "Secrets check mode: warn, strict, off", "warn")
+  .option("--redact", "Redact detected secrets in output")
   .action((input: string, opts: Record<string, unknown>) => {
     const format = opts.format as CastConfig["format"];
     if (!["cast", "gif", "mp4"].includes(format)) {
@@ -40,10 +44,13 @@ program
       width: opts.width as number,
       height: opts.height as number,
       typingSpeed: opts.typingSpeed as number,
-      showCaptions: opts.captions === true,
+      showCaptions: opts.captions !== false,
       format: detectedFormat,
     };
 
+    if (opts.title != null) config.title = opts.title as string;
+    if (opts.secretsCheck != null) config.secretsCheck = opts.secretsCheck as CastConfig["secretsCheck"];
+    if (opts.redact === true) config.redact = true;
     if (opts.userTypingSpeed != null) config.userTypingSpeed = opts.userTypingSpeed as number;
     if (opts.agentSpeed != null) config.agentSpeed = opts.agentSpeed as number;
     if (opts.responseTypingSpeed != null) config.responseTypingSpeed = opts.responseTypingSpeed as number;
@@ -60,6 +67,26 @@ program
         console.log(`\nPlay with: asciinema play ${outputPath}`);
         console.log(`Or use the web player: https://asciinema.org/`);
       }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`Error: ${msg}`);
+      process.exit(1);
+    }
+  });
+
+// Standalone check-secrets subcommand
+program
+  .command("check-secrets <input>")
+  .description("Scan a JSONL log file for potential secrets")
+  .action((input: string) => {
+    try {
+      const findings = checkSecretsFile(input);
+      if (findings.length === 0) {
+        console.log("No secrets detected.");
+        process.exit(0);
+      }
+      console.log(formatFindings(findings));
+      process.exit(1);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`Error: ${msg}`);
