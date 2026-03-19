@@ -6,6 +6,12 @@
 
 Берёт необработанный лог сессии Claude Code и создаёт реалистичный терминальный скринкаст, показывающий работу Claude — с вызовами инструментов, редактированием файлов, bash-командами и подписями к действиям.
 
+## Демо
+
+<p align="center">
+  <img src="examples/demo.gif" alt="claude-cast демо" width="800" />
+</p>
+
 ## Установка
 
 ```bash
@@ -124,8 +130,9 @@ npm run build
 
 ```bash
 npx claude-cast examples/sample.jsonl -o demo.cast
-asciinema play demo.cast
 ```
+
+Результат показан в секции [Демо](#демо) выше.
 
 ## Форматы вывода
 
