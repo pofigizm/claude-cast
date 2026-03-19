@@ -8,17 +8,9 @@ Takes a raw Claude Code session log and produces a realistic terminal screencast
 
 ## Demo
 
-Play the included demo screencast to see claude-cast in action:
-
-```bash
-# Generate the demo from JSONL source
-npx claude-cast examples/demo.jsonl -o examples/demo.cast
-
-# Play it
-asciinema play examples/demo.cast
-```
-
-The demo shows a typical Claude Code session: searching for TODOs, reading files, editing code, running tests, and committing — all rendered as a realistic terminal screencast.
+<p align="center">
+  <img src="examples/demo.gif" alt="claude-cast demo" width="800" />
+</p>
 
 ## Installation
 
@@ -138,8 +130,9 @@ npm run build
 
 ```bash
 npx claude-cast examples/sample.jsonl -o demo.cast
-asciinema play demo.cast
 ```
+
+See the [Demo](#demo) section above for the result.
 
 ## Output formats
 

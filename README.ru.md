@@ -8,17 +8,9 @@
 
 ## Демо
 
-Воспроизведите демо-скринкаст, чтобы увидеть claude-cast в действии:
-
-```bash
-# Сгенерировать демо из JSONL-сценария
-npx claude-cast examples/demo.jsonl -o examples/demo.cast
-
-# Воспроизвести
-asciinema play examples/demo.cast
-```
-
-Демо показывает типичную сессию Claude Code: поиск TODO-комментариев, чтение файлов, редактирование кода, запуск тестов и коммит — всё в виде реалистичного терминального скринкаста.
+<p align="center">
+  <img src="examples/demo.gif" alt="claude-cast демо" width="800" />
+</p>
 
 ## Установка
 
@@ -138,8 +130,9 @@ npm run build
 
 ```bash
 npx claude-cast examples/sample.jsonl -o demo.cast
-asciinema play demo.cast
 ```
+
+Результат показан в секции [Демо](#демо) выше.
 
 ## Форматы вывода
 
