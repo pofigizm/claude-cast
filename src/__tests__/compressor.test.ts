@@ -157,7 +157,7 @@ describe("compressTimeline", () => {
 
     const config: CastConfig = {
       ...DEFAULT_CONFIG,
-      maxPause: 1,
+      maxPause: 20,
       speed: 2,
       responseTypingSpeed: 50,
       responsePause: 0,
@@ -165,9 +165,9 @@ describe("compressTimeline", () => {
     };
     const result = compressTimeline(events, config);
 
-    // renderTime = 500/50 * 1000 = 10000ms, renderTime * speed = 20000ms
+    // renderTime = 500/50 * 1000 = 10000ms, capped to maxPause(20s)=20000ms, so 10000ms
+    // renderTime * speed = 20000ms
     // After /speed, duration should be >= 10000ms (= 20000 / 2)
-    // i.e. enough time for the renderer to finish typing the text
     expect(result[0].duration).toBeGreaterThanOrEqual(10000 / config.speed);
   });
 
@@ -181,15 +181,15 @@ describe("compressTimeline", () => {
 
     const config: CastConfig = {
       ...DEFAULT_CONFIG,
-      maxPause: 1,
+      maxPause: 20,
       speed: 2,
       responseTypingSpeed: 50,
       preUserPause: 2,
     };
     const result = compressTimeline(events, config);
 
-    // renderTime = 400/50*1000 = 8000ms, renderTime*speed = 16000ms
-    // extra = preUserPause = 2000ms
+    // renderTime = 400/50*1000 = 8000ms, capped to maxPause(20s)=20000ms, so 8000ms
+    // renderTime*speed = 16000ms, extra = preUserPause = 2000ms
     // minDuration = 16000 + 2000 = 18000ms (pre-speed-division)
     // After /speed: 18000/2 = 9000ms
     expect(result[0].duration).toBeGreaterThanOrEqual(9000);
@@ -253,12 +253,10 @@ describe("compressTimeline", () => {
     };
     const result = compressTimeline(events, config);
 
-    // With agentSpeed: renderTime = 400/800*1000 = 500ms
-    // With userTypingSpeed: would be 400/25*1000 = 16000ms
-    // The actual duration should reflect agentSpeed, not userTypingSpeed
-    // responsePause extra = 1000ms (after user_message)
-    // minDuration = renderTime*speed + extra = 500 + 1000 = 1500ms
-    // The duration should be reasonable (not 16000+)
-    expect(result[0].duration).toBeLessThan(5000);
+    // User messages always use userTypingSpeed regardless of length
+    // renderTime = 400/25*1000 = 16000ms, renderTime*speed = 16000
+    // responsePause extra = 1000ms
+    // minDuration = 16000 + 1000 = 17000ms
+    expect(result[0].duration).toBeGreaterThanOrEqual(17000);
   });
 });

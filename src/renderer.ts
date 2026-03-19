@@ -91,11 +91,7 @@ function renderUserMessage(
   frames.push([time, "o", `\r\n${header}\r\n`]);
 
   const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
-  // Long user messages (pastes, machine-generated) get agent speed
-  const isLongInput = totalChars > 200 || lines.length > 5;
-  const speed = isLongInput
-    ? (config.agentSpeed ?? config.typingSpeed)
-    : getTypingSpeed("user_message", config);
+  const speed = getTypingSpeed("user_message", config);
   const totalTime = totalChars / speed;
   let charCount = 0;
 
@@ -141,9 +137,13 @@ function renderAssistantText(
   frames.push([time, "o", `\r\n`]);
 
   // Word-by-word typing effect for assistant text
-  const speed = getTypingSpeed("assistant_text", config);
+  // Long texts render faster so they don't dominate the screencast
+  const baseSpeed = getTypingSpeed("assistant_text", config);
   const displayLines = lines.slice(0, 30);
   const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
+  const baseTime = totalChars / baseSpeed;
+  const maxRenderSec = config.maxPause * 2;
+  const speed = baseTime > maxRenderSec ? totalChars / maxRenderSec : baseSpeed;
   const totalTime = totalChars / speed;
   let charCount = 0;
 
