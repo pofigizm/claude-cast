@@ -6,9 +6,19 @@ Convert Claude Code JSONL logs into terminal screencasts.
 
 Takes a raw Claude Code session log and produces a realistic terminal screencast showing how Claude worked — with tool calls, file edits, bash commands, and action captions.
 
-<p align="center">
-  <img src="examples/demo.svg" alt="claude-cast demo — a screencast of claude-cast generating a screencast" width="800">
-</p>
+## Demo
+
+Play the included demo screencast to see claude-cast in action:
+
+```bash
+# Generate the demo from JSONL source
+npx claude-cast examples/demo.jsonl -o examples/demo.cast
+
+# Play it
+asciinema play examples/demo.cast
+```
+
+The demo shows a typical Claude Code session: searching for TODOs, reading files, editing code, running tests, and committing — all rendered as a realistic terminal screencast.
 
 ## Installation
 
