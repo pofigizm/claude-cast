@@ -69,6 +69,9 @@ export interface CastConfig {
   responsePause?: number; // pause after assistant response in seconds
   preUserPause?: number; // pause before user input in seconds
   showCaptions: boolean;
+  title?: string;
+  secretsCheck?: "warn" | "strict" | "off";
+  redact?: boolean;
   format: "cast" | "gif" | "mp4";
 }
 
@@ -83,6 +86,6 @@ export const DEFAULT_CONFIG: CastConfig = {
   responseTypingSpeed: 75,
   responsePause: 5,
   preUserPause: 4,
-  showCaptions: false,
+  showCaptions: true,
   format: "cast",
 };

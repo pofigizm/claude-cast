@@ -1,4 +1,5 @@
 import type { TimelineEvent, CastConfig, AsciicastHeader, AsciicastEvent } from "./types.js";
+import { classifyText, isPastedContent } from "./text-classifier.js";
 
 const ESC = "\x1b";
 const CSI = `${ESC}[`;
@@ -17,13 +18,29 @@ const BG_BLACK = `${CSI}40m`;
 /**
  * Get the effective typing speed (chars/sec) for a given event kind.
  * Per-phase speeds override the global typingSpeed fallback.
+ * Adaptive speed: technical text renders faster than narrative text.
  */
-function getTypingSpeed(kind: TimelineEvent["kind"], config: CastConfig): number {
+function getTypingSpeed(kind: TimelineEvent["kind"], config: CastConfig, text?: string): number {
   switch (kind) {
-    case "user_message":
-      return config.userTypingSpeed ?? config.typingSpeed;
-    case "assistant_text":
-      return config.responseTypingSpeed ?? config.typingSpeed;
+    case "user_message": {
+      const baseSpeed = config.userTypingSpeed ?? config.typingSpeed;
+      // Pasted content (logs, code, stack traces) renders at agent speed
+      if (text && isPastedContent(text)) {
+        return config.agentSpeed ?? config.typingSpeed;
+      }
+      return baseSpeed;
+    }
+    case "assistant_text": {
+      const baseSpeed = config.responseTypingSpeed ?? config.typingSpeed;
+      // Technical blocks (code, JSON, tables) render faster
+      if (text && classifyText(text) === "technical") {
+        // Use 3x the base response speed, but cap at agent speed
+        const fastSpeed = baseSpeed * 3;
+        const agentSpeed = config.agentSpeed ?? config.typingSpeed;
+        return Math.min(fastSpeed, agentSpeed);
+      }
+      return baseSpeed;
+    }
     case "tool_use":
     case "tool_result":
       return config.agentSpeed ?? config.typingSpeed;
@@ -41,7 +58,7 @@ export function renderAsciicast(
     version: 2,
     width: config.width,
     height: config.height,
-    title: "Claude Code Session",
+    title: config.title || "Claude Code Session",
     env: { TERM: "xterm-256color", SHELL: "/bin/bash" },
   };
 
@@ -91,7 +108,7 @@ function renderUserMessage(
   frames.push([time, "o", `\r\n${header}\r\n`]);
 
   const totalChars = lines.reduce((sum, l) => sum + l.length, 0);
-  const speed = getTypingSpeed("user_message", config);
+  const speed = getTypingSpeed("user_message", config, event.text);
   const totalTime = totalChars / speed;
   let charCount = 0;
 
@@ -120,7 +137,7 @@ function renderUserMessage(
   }
 
   if (config.showCaptions) {
-    frames.push([time, "o", renderStatusBar("User message", config.width)]);
+    frames.push([time, "o", renderInlineCaption("User message")]);
   }
 
   return frames;
@@ -138,7 +155,7 @@ function renderAssistantText(
 
   // Word-by-word typing effect for assistant text
   // Long texts render faster so they don't dominate the screencast
-  const baseSpeed = getTypingSpeed("assistant_text", config);
+  const baseSpeed = getTypingSpeed("assistant_text", config, event.text);
   const displayLines = lines.slice(0, 30);
   const totalChars = displayLines.reduce((sum, l) => sum + l.length, 0);
   const baseTime = totalChars / baseSpeed;
@@ -209,9 +226,9 @@ function renderToolUse(
     }
   }
 
-  // Status bar caption
+  // Inline caption
   if (config.showCaptions && event.caption) {
-    frames.push([time, "o", renderStatusBar(event.caption, config.width)]);
+    frames.push([time, "o", renderInlineCaption(event.caption)]);
   }
 
   return frames;
@@ -250,15 +267,8 @@ function renderToolResult(
   return frames;
 }
 
-function renderStatusBar(text: string, width: number): string {
-  // Save cursor, move to bottom, render bar, restore cursor
-  const paddedText = ` ${text} `.padEnd(width);
-  return (
-    `${CSI}s` + // save cursor
-    `${CSI}${40};1H` + // move to row 40 (bottom)
-    `${BG_BLUE}${WHITE}${BOLD}${paddedText}${RESET}` +
-    `${CSI}u` // restore cursor
-  );
+function renderInlineCaption(text: string): string {
+  return `${BG_BLUE}${WHITE}${BOLD} ${text} ${RESET}\r\n`;
 }
 
 function getToolColor(toolName: string): string {

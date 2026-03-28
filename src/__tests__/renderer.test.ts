@@ -127,7 +127,7 @@ describe("renderAsciicast per-phase timing", () => {
 
     // Extract word-level frames (those that contain actual user text, not headers)
     const wordFrames = result.events.filter(
-      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[44m")
     );
 
     // With agentSpeed=800, totalTime = 300/800 = 0.375s
@@ -165,7 +165,7 @@ describe("renderAsciicast per-phase timing", () => {
     const result = renderAsciicast(events, config);
 
     const wordFrames = result.events.filter(
-      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[44m")
     );
 
     if (wordFrames.length > 1) {
@@ -202,7 +202,7 @@ describe("renderAsciicast per-phase timing", () => {
     const result = renderAsciicast(events, config);
 
     const wordFrames = result.events.filter(
-      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[s")
+      ([, , d]) => !d.includes("User:") && !d.includes("Session") && !d.includes("claude") && !d.includes("\x1b[44m")
     );
 
     if (wordFrames.length > 1) {
